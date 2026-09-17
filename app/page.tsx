@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "./lib/supabase";
 import { resolveCompanyId } from "./lib/company";
 import { demoOpportunities } from "./lib/demo";
@@ -11,10 +12,9 @@ export default async function Home() {
   let opportunities: any[] = [];
   if (db) {
     const companyId = await resolveCompanyId();
-    if (companyId) {
-      const result = await db.from("opportunities").select("id,status,need,product,current_summary,next_action,next_action_at,updated_at,contacts(name,phone)").eq("company_id", companyId).order("updated_at", { ascending: false });
-      opportunities = result.data || [];
-    }
+    if (!companyId) redirect("/configuracion");
+    const result = await db.from("opportunities").select("id,status,need,product,current_summary,next_action,next_action_at,updated_at,contacts(name,phone)").eq("company_id", companyId).order("updated_at", { ascending: false });
+    opportunities = result.data || [];
   }
   if (!opportunities.length) opportunities = demoOpportunities;
   const active = opportunities.filter(o => !["venta", "perdido", "inactivo"].includes(o.status));
