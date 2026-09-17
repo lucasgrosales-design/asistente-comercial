@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "./supabase";
 import { getSupabaseServer } from "./supabase-server";
 
 export async function resolveCompanyId(value?: string | null) {
-  const explicit = value?.trim() || process.env.DEFAULT_COMPANY_ID?.trim();
+  const explicit = value?.trim();
   const db = getSupabaseAdmin();
   if (explicit) {
     if (!db) return explicit;
