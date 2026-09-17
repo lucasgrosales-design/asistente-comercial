@@ -1,0 +1,3 @@
+import {NextRequest,NextResponse} from "next/server";
+import {getSupabaseAdmin} from "../../../lib/supabase";
+export async function POST(req:NextRequest){const secret=process.env.N8N_SHARED_SECRET;if(secret&&req.headers.get("x-n8n-secret")!==secret)return NextResponse.json({ok:false,error:"unauthorized"},{status:401});const event=await req.json();if(!event.text||!event.channel||!event.sender_id)return NextResponse.json({ok:false,error:"invalid_event"},{status:400});const db=getSupabaseAdmin();if(!db)return NextResponse.json({ok:true,mode:"demo",message:"Evento recibido; Supabase todavía no está configurado."});return NextResponse.json({ok:true,received:true,mode:"persistence_ready",event});}
