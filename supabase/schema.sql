@@ -1,0 +1,20 @@
+create extension if not exists pgcrypto;
+create table if not exists companies (id uuid primary key default gen_random_uuid(), name text not null, created_at timestamptz not null default now());
+create table if not exists users (id uuid primary key default gen_random_uuid(), company_id uuid not null references companies(id) on delete cascade, name text not null, email text, role text not null default 'seller', created_at timestamptz not null default now());
+create table if not exists contacts (id uuid primary key default gen_random_uuid(), company_id uuid not null references companies(id) on delete cascade, name text not null, phone text, email text, metadata jsonb not null default '{}'::jsonb, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists opportunities (id uuid primary key default gen_random_uuid(), company_id uuid not null references companies(id) on delete cascade, contact_id uuid not null references contacts(id) on delete cascade, assigned_user_id uuid references users(id) on delete set null, need text, product text, intent text, status text not null default 'nuevo' check(status in ('nuevo','en_conversacion','seguimiento','venta','perdido','inactivo')), current_summary text, next_action text, next_action_at date, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists conversations (id uuid primary key default gen_random_uuid(), opportunity_id uuid not null references opportunities(id) on delete cascade, channel text not null, external_id text, started_at timestamptz not null default now(), updated_at timestamptz not null default now(), unique(channel,external_id));
+create table if not exists interactions (id uuid primary key default gen_random_uuid(), opportunity_id uuid not null references opportunities(id) on delete cascade, user_id uuid references users(id) on delete set null, channel text not null default 'manual', occurred_at timestamptz not null default now(), source_text text, summary text not null, outcome text, created_at timestamptz not null default now());
+create index if not exists idx_opportunities_company_status on opportunities(company_id,status);
+create index if not exists idx_opportunities_next_action on opportunities(company_id,next_action_at);
+create index if not exists idx_interactions_opportunity on interactions(opportunity_id,occurred_at desc);
+
+alter table companies enable row level security; alter table users enable row level security; alter table contacts enable row level security; alter table opportunities enable row level security; alter table conversations enable row level security; alter table interactions enable row level security;
+
+create or replace function public.current_company_id() returns uuid language sql stable security definer set search_path=public as $$ select company_id from public.users where id=auth.uid() limit 1 $$;
+create policy "company users" on companies for select using (id=public.current_company_id());
+create policy "company users read users" on users for select using (company_id=public.current_company_id());
+create policy "company contacts" on contacts for all using (company_id=public.current_company_id()) with check (company_id=public.current_company_id());
+create policy "company opportunities" on opportunities for all using (company_id=public.current_company_id()) with check (company_id=public.current_company_id());
+create policy "company conversations" on conversations for all using (exists(select 1 from opportunities o where o.id=opportunity_id and o.company_id=public.current_company_id())) with check (exists(select 1 from opportunities o where o.id=opportunity_id and o.company_id=public.current_company_id()));
+create policy "company interactions" on interactions for all using (exists(select 1 from opportunities o where o.id=opportunity_id and o.company_id=public.current_company_id())) with check (exists(select 1 from opportunities o where o.id=opportunity_id and o.company_id=public.current_company_id()));
