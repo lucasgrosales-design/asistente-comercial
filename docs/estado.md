@@ -10,10 +10,16 @@
 - [x] Modelo Supabase/Postgres
 - [x] Contrato IA
 - [x] Workflow n8n inicial
-- [ ] Supabase conectado
-- [ ] Autenticación real
-- [ ] Persistencia completa de oportunidades
-- [ ] Integración IA en producción
+- [x] Persistencia de oportunidades y contactos en API
+- [x] Registro de interacciones + actualización de memoria comercial
+- [x] Procesamiento inbound + deduplicación
+- [x] Identidad multicanal de contactos
+- [x] Vista de vendedor conectada a datos persistidos
+- [x] Vista operativa de gestión
+- [x] Base de autenticación Supabase (login/signup + protección de rutas)
+- [x] Configuración inicial de empresa/usuario
+- [ ] Supabase conectado en entorno real
+- [ ] Verificación de build/typecheck en entorno desplegado
 - [ ] WhatsApp conectado
-- [ ] Pruebas end-to-end
+- [ ] Pruebas end-to-end con Supabase real
 - [ ] Piloto comercial
