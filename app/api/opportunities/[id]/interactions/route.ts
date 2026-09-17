@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../../lib/supabase";
 import { extractCommercialContext } from "../../../../lib/ai";
 
+// Deployment verification: keep this route on the current main revision.
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
