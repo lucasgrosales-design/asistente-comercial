@@ -1,13 +1,24 @@
 import { getSupabaseAdmin } from "./supabase";
+import { getSupabaseServer } from "./supabase-server";
 
 export async function resolveCompanyId(value?: string | null) {
-  const id = value?.trim() || process.env.DEFAULT_COMPANY_ID?.trim();
-  if (!id) return null;
+  const explicit = value?.trim() || process.env.DEFAULT_COMPANY_ID?.trim();
   const db = getSupabaseAdmin();
-  if (!db) return id;
-  const { data, error } = await db.from("companies").select("id").eq("id", id).maybeSingle();
-  if (error || !data) return null;
-  return data.id;
+  if (explicit) {
+    if (!db) return explicit;
+    const { data } = await db.from("companies").select("id").eq("id", explicit).maybeSingle();
+    return data?.id || null;
+  }
+  if (!db) return null;
+  try {
+    const supabase = await getSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data } = await db.from("users").select("company_id").eq("id", user.id).maybeSingle();
+    return data?.company_id || null;
+  } catch {
+    return null;
+  }
 }
 
 export const VALID_STATUSES = ["nuevo", "en_conversacion", "seguimiento", "venta", "perdido", "inactivo"] as const;
