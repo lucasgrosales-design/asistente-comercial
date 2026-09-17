@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {getSupabaseAdmin} from "../../lib/supabase";
+export async function GET(){const db=getSupabaseAdmin();if(!db)return NextResponse.json({data:[],mode:"demo",message:"Supabase no configurado"});const {data,error}=await db.from("opportunities").select("*,contacts(name,phone),users(name)").order("updated_at",{ascending:false});if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({data});}
