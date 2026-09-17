@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!event?.text?.trim() || !event?.channel?.trim() || !event?.sender_id?.trim() || !event?.external_message_id?.trim()) return NextResponse.json({ ok: false, error: "invalid_event" }, { status: 400 });
   const db = getSupabaseAdmin();
   if (!db) return NextResponse.json({ ok: true, mode: "demo", message: "Evento recibido; Supabase todavía no está configurado." });
-  const companyId = await resolveCompanyId(event.company_id);
+  const companyId = await resolveCompanyId(event.company_id || process.env.DEFAULT_COMPANY_ID);
   if (!companyId) return NextResponse.json({ ok: false, error: "company_not_configured" }, { status: 400 });
 
   let inboundEventId: string;
