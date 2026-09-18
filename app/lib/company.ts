@@ -1,20 +1,18 @@
-import { getSupabaseAdmin } from "./supabase";
 import { getSupabaseServer } from "./supabase-server";
 
 export async function resolveCompanyId(value?: string | null) {
   const explicit = value?.trim();
-  const db = getSupabaseAdmin();
+  const supabase = await getSupabaseServer();
+
   if (explicit) {
-    if (!db) return explicit;
-    const { data } = await db.from("companies").select("id").eq("id", explicit).maybeSingle();
-    return data?.id || null;
+    const { data } = await supabase.from("companies").select("id").eq("id", explicit).maybeSingle();
+    return data?.id || explicit;
   }
-  if (!db) return null;
+
   try {
-    const supabase = await getSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
-    const { data } = await db.from("users").select("company_id").eq("id", user.id).maybeSingle();
+    const { data } = await supabase.from("users").select("company_id").eq("id", user.id).maybeSingle();
     return data?.company_id || null;
   } catch {
     return null;
