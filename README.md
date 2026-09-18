@@ -25,3 +25,4 @@ Sin Supabase configurado, la interfaz funciona en modo demo.
 
 ## GitHub
 Este repositorio contiene el MVP y la documentación de producto, arquitectura, datos, IA y n8n. No colocar secretos en Git.
+
