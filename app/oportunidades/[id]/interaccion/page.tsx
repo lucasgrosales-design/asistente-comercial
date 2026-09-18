@@ -4,7 +4,6 @@ import Link from "next/link";
 
 export default function InteractionPage({ params }: { params: Promise<{ id: string }> }) {
   const [text, setText] = useState("");
-  const [opportunityId, setOpportunityId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
