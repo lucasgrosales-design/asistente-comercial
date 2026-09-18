@@ -11,13 +11,12 @@ export default function InteractionPage({ params }: { params: Promise<{ id: stri
   async function save() {
     if (!text.trim() || saving) return;
     const { id } = await params;
-    setOpportunityId(id);
     setSaving(true); setError("");
     try {
-      const response = await fetch(`/api/opportunities/${opportunityId}/interactions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+      const response = await fetch(`/api/opportunities/${id}/interactions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo guardar la interacción");
-      window.location.href = `/oportunidades/${opportunityId}`;
+      window.location.href = `/oportunidades/${id}`;
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar la interacción");
       setSaving(false);
