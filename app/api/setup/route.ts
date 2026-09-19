@@ -11,15 +11,29 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data: companyId, error } = await supabase.rpc("setup_company", {
-    p_company_name: body.company_name.trim(),
-    p_user_name: body.user_name.trim(),
+  const { data: existing } = await supabase.from("users").select("company_id").eq("id", user.id).maybeSingle();
+  if (existing?.company_id) return NextResponse.json({ company_id: existing.company_id, created: false });
+
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .insert({ name: body.company_name.trim() })
+    .select("id")
+    .single();
+
+  if (companyError) return NextResponse.json({ error: companyError.message }, { status: 500 });
+
+  const { error: userError } = await supabase.from("users").insert({
+    id: user.id,
+    company_id: company.id,
+    name: body.user_name.trim(),
+    email: user.email ?? null,
+    role: "owner",
   });
 
-  if (error) {
-    console.error("setup_company failed", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (userError) {
+    await supabase.from("companies").delete().eq("id", company.id);
+    return NextResponse.json({ error: userError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ company_id: companyId, created: true });
+  return NextResponse.json({ company_id: company.id, created: true });
 }
