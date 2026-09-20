@@ -5,12 +5,18 @@ import { resolveCompanyId, normalizeStatus } from "../../../lib/company";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.N8N_SHARED_SECRET;
-  if (secret && req.headers.get("x-n8n-secret") !== secret) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  if (!secret) return NextResponse.json({ ok: false, error: "webhook_not_configured" }, { status: 503 });
+  if (req.headers.get("x-n8n-secret") !== secret) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
   const event = await req.json().catch(() => null);
-  if (!event?.text?.trim() || !event?.channel?.trim() || !event?.sender_id?.trim() || !event?.external_message_id?.trim()) return NextResponse.json({ ok: false, error: "invalid_event" }, { status: 400 });
+  if (!event?.text?.trim() || !event?.channel?.trim() || !event?.sender_id?.trim() || !event?.external_message_id?.trim()) {
+    return NextResponse.json({ ok: false, error: "invalid_event" }, { status: 400 });
+  }
+
   const db = getSupabaseAdmin();
-  if (!db) return NextResponse.json({ ok: true, mode: "demo", message: "Evento recibido; Supabase todavía no está configurado." });
-  const companyId = await resolveCompanyId(event.company_id || process.env.DEFAULT_COMPANY_ID);
+  if (!db) return NextResponse.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
+
+  const companyId = await resolveCompanyId(event.company_id || process.env.DEFAULT_COMPANY_ID, { allowUnauthenticated: true });
   if (!companyId) return NextResponse.json({ ok: false, error: "company_not_configured" }, { status: 400 });
 
   let inboundEventId: string;
