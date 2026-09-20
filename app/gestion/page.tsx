@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSupabaseServer } from "../lib/supabase-server";
 import { resolveCompanyId } from "../lib/company";
 
