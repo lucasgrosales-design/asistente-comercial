@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServer } from "../../../../lib/supabase-server";
 import { resolveCompanyId, normalizeStatus } from "../../../../lib/company";
-import { extractCommercialContext } from "../../../../lib/ai";
+import { extractCommercialContext, type CommercialExtraction } from "../../../../lib/ai";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (oppError) return NextResponse.json({ error: oppError.message }, { status: 500 });
   if (!opp) return NextResponse.json({ error: "opportunity_not_found" }, { status: 404 });
 
-  let extracted = {
+  let extracted: CommercialExtraction = {
     summary: body.text.trim().slice(0, 500),
     next_action: body.outcome ? `Revisar resultado: ${body.outcome}` : "Definir próximo contacto",
     next_action_at: null as string | null,
