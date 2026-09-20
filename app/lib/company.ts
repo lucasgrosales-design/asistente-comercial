@@ -6,10 +6,15 @@ export async function resolveCompanyId(value?: string | null) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase.rpc("get_current_company_id");
-  if (error || !data) return null;
-  if (explicit && data !== explicit) return null;
-  return data;
+  const { data, error } = await supabase
+    .from("users")
+    .select("company_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error || !data?.company_id) return null;
+  if (explicit && data.company_id !== explicit) return null;
+  return data.company_id;
 }
 
 export const VALID_STATUSES = ["nuevo", "en_conversacion", "seguimiento", "venta", "perdido", "inactivo"] as const;
