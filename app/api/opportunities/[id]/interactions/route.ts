@@ -28,11 +28,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let extracted: CommercialExtraction = {
     summary: body.text.trim().slice(0, 500),
     next_action: body.outcome ? `Revisar resultado: ${body.outcome}` : "Definir próximo contacto",
-    next_action_at: null as string | null,
-    need: null as string | null,
-    product: null as string | null,
-    intent: null as string | null,
-    status: null as string | null,
+    next_action_at: undefined,
+    need: undefined,
+    product: undefined,
+    intent: undefined,
+    status: undefined,
   };
 
   try {
