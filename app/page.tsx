@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSupabaseAdmin } from "./lib/supabase";
+import { getSupabaseServer } from "./lib/supabase-server";
 import { resolveCompanyId } from "./lib/company";
 
 export const dynamic = "force-dynamic";
@@ -9,8 +9,7 @@ const labels = { nuevo: "Nuevo", en_conversacion: "En conversación", seguimient
 
 export default async function Home() {
   const today = new Date().toISOString().slice(0, 10);
-  const db = getSupabaseAdmin();
-  if (!db) throw new Error("supabase_not_configured");
+  const db = await getSupabaseServer();
   const companyId = await resolveCompanyId();
   if (!companyId) redirect("/configuracion");
   const result = await db.from("opportunities").select("id,status,need,product,current_summary,next_action,next_action_at,updated_at,contacts(name,phone)").eq("company_id", companyId).order("updated_at", { ascending: false });
