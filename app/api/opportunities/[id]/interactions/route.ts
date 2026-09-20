@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "../../../../lib/supabase";
 import { getSupabaseServer } from "../../../../lib/supabase-server";
 import { resolveCompanyId, normalizeStatus } from "../../../../lib/company";
 import { extractCommercialContext } from "../../../../lib/ai";
@@ -9,29 +8,69 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json().catch(() => null);
   if (!body?.text?.trim()) return NextResponse.json({ error: "text is required" }, { status: 400 });
 
-  const session = await getSupabaseServer();
-  const { data: { user } } = await session.auth.getUser();
+  const db = await getSupabaseServer();
+  const { data: { user } } = await db.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const companyId = await resolveCompanyId();
   if (!companyId) return NextResponse.json({ error: "company_not_configured" }, { status: 400 });
 
-  const db = getSupabaseAdmin();
-  if (!db) return NextResponse.json({ error: "supabase_not_configured" }, { status: 503 });
-  const { data: opp, error: oppError } = await db.from("opportunities").select("id,current_summary").eq("id", id).eq("company_id", companyId).maybeSingle();
+  const { data: opp, error: oppError } = await db
+    .from("opportunities")
+    .select("id,current_summary")
+    .eq("id", id)
+    .eq("company_id", companyId)
+    .maybeSingle();
+
   if (oppError) return NextResponse.json({ error: oppError.message }, { status: 500 });
   if (!opp) return NextResponse.json({ error: "opportunity_not_found" }, { status: 404 });
 
-  const extracted = await extractCommercialContext(body.text.trim(), opp.current_summary || "");
-  const interaction = await db.from("interactions").insert({ opportunity_id: id, user_id: user.id, channel: body.channel || "manual", occurred_at: body.occurred_at || new Date().toISOString(), source_text: body.text.trim(), summary: extracted.summary, outcome: body.outcome || null }).select().single();
+  let extracted = {
+    summary: body.text.trim().slice(0, 500),
+    next_action: body.outcome ? `Revisar resultado: ${body.outcome}` : "Definir próximo contacto",
+    next_action_at: null as string | null,
+    need: null as string | null,
+    product: null as string | null,
+    intent: null as string | null,
+    status: null as string | null,
+  };
+
+  try {
+    extracted = await extractCommercialContext(body.text.trim(), opp.current_summary || "");
+  } catch (error) {
+    console.warn("AI extraction unavailable; saving manual interaction", error);
+  }
+
+  const interaction = await db.from("interactions").insert({
+    opportunity_id: id,
+    user_id: user.id,
+    channel: body.channel || "manual",
+    occurred_at: body.occurred_at || new Date().toISOString(),
+    source_text: body.text.trim(),
+    summary: extracted.summary || body.text.trim().slice(0, 500),
+    outcome: body.outcome || null,
+  }).select().single();
+
   if (interaction.error) return NextResponse.json({ error: interaction.error.message }, { status: 500 });
 
-  const patch: Record<string, unknown> = { current_summary: extracted.summary, next_action: extracted.next_action || null, next_action_at: extracted.next_action_at || null, updated_at: new Date().toISOString() };
+  const patch: Record<string, unknown> = {
+    current_summary: extracted.summary || body.text.trim().slice(0, 500),
+    next_action: extracted.next_action || "Definir próximo contacto",
+    next_action_at: extracted.next_action_at || null,
+    updated_at: new Date().toISOString(),
+  };
   if (extracted.need) patch.need = extracted.need;
   if (extracted.product) patch.product = extracted.product;
   if (extracted.intent) patch.intent = extracted.intent;
   const status = normalizeStatus(extracted.status);
   if (status) patch.status = status;
-  const { error: updateError } = await db.from("opportunities").update(patch).eq("id", id).eq("company_id", companyId);
+
+  const { error: updateError } = await db
+    .from("opportunities")
+    .update(patch)
+    .eq("id", id)
+    .eq("company_id", companyId);
+
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
 
   return NextResponse.json({ interaction: interaction.data, extracted });
