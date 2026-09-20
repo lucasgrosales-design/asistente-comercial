@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getSupabaseAdmin } from "./lib/supabase";
 import { resolveCompanyId } from "./lib/company";
 
+export const dynamic = "force-dynamic";
+
 const labels = { nuevo: "Nuevo", en_conversacion: "En conversación", seguimiento: "Seguimiento", venta: "Venta", perdido: "Perdido", inactivo: "Inactivo" } as const;
 
 export default async function Home() {
