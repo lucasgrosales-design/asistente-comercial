@@ -1,35 +1,30 @@
 import { getSupabaseServer } from "./supabase-server";
+import { getSupabaseAdmin } from "./supabase";
 
-export async function resolveCompanyId(value?: string | null) {
+export async function resolveCompanyId(value?: string | null, options?: { allowUnauthenticated?: boolean }) {
   const explicit = value?.trim();
   const supabase = await getSupabaseServer();
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   if (explicit) {
-    const { data } = await supabase.from("companies").select("id").eq("id", explicit).maybeSingle();
-    return data?.id || null;
-  }
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const byId = await supabase.from("users").select("company_id").eq("id", user.id).maybeSingle();
-    if (byId.data?.company_id) return byId.data.company_id;
-
-    if (user.email) {
-      const byEmail = await supabase.from("users").select("company_id").eq("email", user.email).maybeSingle();
-      if (byEmail.data?.company_id) return byEmail.data.company_id;
+    if (user) {
+      const { data } = await supabase.from("users").select("company_id").eq("id", user.id).maybeSingle();
+      return data?.company_id === explicit ? explicit : null;
     }
-
-    // MVP single-company fallback: allows an authenticated test user to enter
-    // the existing workspace even if its public.users profile was not created.
-    const { data: companies } = await supabase.from("companies").select("id").limit(2);
-    if (companies?.length === 1) return companies[0].id;
-  } catch {
+    if (options?.allowUnauthenticated) {
+      const admin = getSupabaseAdmin();
+      if (!admin) return null;
+      const { data } = await admin.from("companies").select("id").eq("id", explicit).maybeSingle();
+      return data?.id || null;
+    }
     return null;
   }
 
-  return null;
+  if (!user) return null;
+
+  const { data } = await supabase.from("users").select("company_id").eq("id", user.id).maybeSingle();
+  return data?.company_id || null;
 }
 
 export const VALID_STATUSES = ["nuevo", "en_conversacion", "seguimiento", "venta", "perdido", "inactivo"] as const;
