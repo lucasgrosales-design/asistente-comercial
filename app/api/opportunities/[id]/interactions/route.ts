@@ -27,8 +27,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   let extracted: CommercialExtraction = {
     summary: body.text.trim().slice(0, 500),
-    next_action: body.outcome ? `Revisar resultado: ${body.outcome}` : "Definir próximo contacto",
-    next_action_at: undefined,
+    next_action: body.next_action || (body.outcome ? `Revisar resultado: ${body.outcome}` : "Definir próximo contacto"),
+    next_action_at: body.next_action_at || null,
     need: undefined,
     product: undefined,
     intent: undefined,
@@ -55,14 +55,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const patch: Record<string, unknown> = {
     current_summary: extracted.summary || body.text.trim(),
-    next_action: extracted.next_action || "Definir próximo contacto",
-    next_action_at: extracted.next_action_at || null,
+    next_action: body.next_action || extracted.next_action || "Definir próximo contacto",
+    next_action_at: body.next_action_at || extracted.next_action_at || null,
     updated_at: new Date().toISOString(),
   };
   if (extracted.need) patch.need = extracted.need;
   if (extracted.product) patch.product = extracted.product;
   if (extracted.intent) patch.intent = extracted.intent;
-  const status = normalizeStatus(extracted.status);
+  const status = normalizeStatus(body.outcome || extracted.status);
   if (status) patch.status = status;
 
   const { error: updateError } = await db
