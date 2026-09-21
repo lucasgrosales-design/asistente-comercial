@@ -47,14 +47,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     channel: body.channel || "manual",
     occurred_at: body.occurred_at || new Date().toISOString(),
     source_text: body.text.trim(),
-    summary: extracted.summary || body.text.trim().slice(0, 500),
-    outcome: body.outcome || null,
+    summary: body.text.trim(),
+    outcome: body.outcome || "Contacto registrado",
   }).select().single();
 
   if (interaction.error) return NextResponse.json({ error: interaction.error.message }, { status: 500 });
 
   const patch: Record<string, unknown> = {
-    current_summary: extracted.summary || body.text.trim().slice(0, 500),
+    current_summary: extracted.summary || body.text.trim(),
     next_action: extracted.next_action || "Definir próximo contacto",
     next_action_at: extracted.next_action_at || null,
     updated_at: new Date().toISOString(),
