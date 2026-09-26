@@ -2,13 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "../lib/supabase-server";
 import { resolveCompanyId } from "../lib/company";
-import { getDemoState, isDemoUser } from "../lib/demo";
+import { getDemoState, isDemoSession, isDemoUser } from "../lib/demo";
 
 export default async function ManagementPage() {
   const db = await getSupabaseServer();
   const { data: { user } } = await db.auth.getUser();
   let opportunities:any[] = [];
-  if (isDemoUser(user?.email)) opportunities = (await getDemoState()).opportunities;
+  if (await isDemoSession() || isDemoUser(user?.email)) opportunities = (await getDemoState()).opportunities;
   else {
     const companyId = await resolveCompanyId();
     if (!companyId) redirect("/configuracion");
