@@ -32,9 +32,9 @@ export default function LoginPage() {
   async function demoLogin() {
     setMode("login"); setLoading(true); setError(""); setMessage("");
     const supabase = getSupabaseBrowser();
-    let result = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+    let signInError = (await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD })).error;
 
-    if (result.error) {
+    if (signInError) {
       const created = await supabase.auth.signUp({
         email: DEMO_EMAIL,
         password: DEMO_PASSWORD,
@@ -55,10 +55,10 @@ export default function LoginPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ company_name: "Empresa Demo", user_name: "Usuario Demo" })
       });
-      result = { error: null } as typeof result;
+      signInError = null;
     }
 
-    if (result.error) setError("No se pudo iniciar la sesión demo.");
+    if (signInError) setError("No se pudo iniciar la sesión demo.");
     else window.location.href = "/";
     setLoading(false);
   }
