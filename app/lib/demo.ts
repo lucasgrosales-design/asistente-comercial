@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import type { Interaction, Opportunity } from "./types";
 
-export const DEMO_EMAIL = "demo@asistentecomercial.app";
-export const DEMO_PASSWORD = "demo";
+import { DEMO_EMAIL } from "./demo-config";
+export { DEMO_EMAIL } from "./demo-config";
 
 const DEMO_COOKIE = "asistente_demo_state";
 
