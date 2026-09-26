@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { getSupabaseBrowser } from "../lib/supabase-browser";
-import { DEMO_EMAIL, DEMO_PASSWORD } from "../lib/demo";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "../lib/demo-config";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
