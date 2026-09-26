@@ -31,36 +31,15 @@ export default function LoginPage() {
 
   async function demoLogin() {
     setMode("login"); setLoading(true); setError(""); setMessage("");
-    const supabase = getSupabaseBrowser();
-    let signInError = (await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD })).error;
-
-    if (signInError) {
-      const created = await supabase.auth.signUp({
-        email: DEMO_EMAIL,
-        password: DEMO_PASSWORD,
-        options: { data: { name: "Usuario Demo" } }
-      });
-      if (created.error) {
-        setError("No se pudo crear el acceso demo.");
-        setLoading(false);
-        return;
-      }
-      if (!created.data.session) {
-        setError("El proyecto requiere confirmar el email del usuario demo. Desactivá la confirmación de email en Supabase para habilitar la prueba.");
-        setLoading(false);
-        return;
-      }
-      await fetch("/api/setup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ company_name: "Empresa Demo", user_name: "Usuario Demo" })
-      });
-      signInError = null;
+    try {
+      const response = await fetch("/api/demo/login", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({email:DEMO_EMAIL,password:DEMO_PASSWORD}) });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || "No se pudo iniciar la sesión demo.");
+      window.location.href = "/";
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo iniciar la sesión demo.");
+      setLoading(false);
     }
-
-    if (signInError) setError("No se pudo iniciar la sesión demo.");
-    else window.location.href = "/";
-    setLoading(false);
   }
 
   return <main className="container" style={{ maxWidth: 480 }}>
