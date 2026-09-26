@@ -1,6 +1,8 @@
 "use client";
+
 import { useState } from "react";
 import { getSupabaseBrowser } from "../lib/supabase-browser";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "../lib/demo";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -9,12 +11,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  async function submit() {
+
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault();
     setLoading(true); setError(""); setMessage("");
     const supabase = getSupabaseBrowser();
     if (mode === "login") {
       const result = await supabase.auth.signInWithPassword({ email, password });
-      if (result.error) setError(result.error.message); else window.location.href = "/";
+      if (result.error) setError("Email o contraseña incorrectos.");
+      else window.location.href = "/";
     } else {
       const result = await supabase.auth.signUp({ email, password });
       if (result.error) setError(result.error.message);
@@ -23,5 +28,36 @@ export default function LoginPage() {
     }
     setLoading(false);
   }
-  return <main className="container" style={{ maxWidth: 480 }}><section className="card"><h1 style={{ marginTop: 0 }}>{mode === "login" ? "Ingresar" : "Crear cuenta"}</h1><p className="muted">{mode === "login" ? "Accedé a tu memoria comercial." : "Creá el acceso de la empresa."}</p><div className="field"><label>Email</label><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} /></div><div className="field"><label>Contraseña</label><input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={e => setPassword(e.target.value)} /></div>{error && <p className="error">{error}</p>}{message && <p>{message}</p>}<button className="button" disabled={!email || !password || loading} onClick={submit}>{loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}</button><button className="button secondary" style={{ marginTop: 10 }} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setMessage(""); }}>{mode === "login" ? "Crear una cuenta" : "Ya tengo una cuenta"}</button></section></main>;
+
+  async function demoLogin() {
+    setMode("login"); setLoading(true); setError(""); setMessage("");
+    const result = await getSupabaseBrowser().auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+    if (result.error) setError("No se pudo iniciar la sesión demo.");
+    else window.location.href = "/";
+    setLoading(false);
+  }
+
+  return <main className="container" style={{ maxWidth: 480 }}>
+    <section className="card">
+      <h1 style={{ marginTop: 0 }}>{mode === "login" ? "Ingresar" : "Crear cuenta"}</h1>
+      <p className="muted">{mode === "login" ? "Accedé a tu memoria comercial." : "Creá el acceso de la empresa."}</p>
+      <form onSubmit={submit}>
+        <div className="field"><label>Email</label><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
+        <div className="field"><label>Contraseña</label><input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={e => setPassword(e.target.value)} /></div>
+        {error && <p className="error">{error}</p>}
+        {message && <p>{message}</p>}
+        <button className="button" type="submit" disabled={!email || !password || loading}>{loading ? "Procesando..." : mode === "login" ? "Ingresar" : "Crear cuenta"}</button>
+      </form>
+      <button className="button secondary" style={{ marginTop: 10 }} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setMessage(""); }}>
+        {mode === "login" ? "Crear una cuenta" : "Ya tengo una cuenta"}
+      </button>
+    </section>
+    <section className="card" style={{ marginTop: 14 }}>
+      <h2 className="section-title">Acceso de prueba</h2>
+      <p className="muted">Es la misma aplicación. La empresa demo usa datos de ejemplo y sus cambios se eliminan al cerrar sesión.</p>
+      <div className="field"><label>Usuario</label><input value={DEMO_EMAIL} readOnly /></div>
+      <div className="field"><label>Contraseña</label><input value={DEMO_PASSWORD} readOnly /></div>
+      <button className="button accent" onClick={demoLogin} disabled={loading}>Entrar a la empresa demo</button>
+    </section>
+  </main>;
 }
