@@ -8,7 +8,7 @@ const DEMO_SESSION_COOKIE = "asistente_demo_session";
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   const pathname = request.nextUrl.pathname;
-  const publicPath = pathname === "/login" || pathname.startsWith("/api/health") || pathname.startsWith("/api/webhooks") || pathname.startsWith("/_next") || pathname.includes(".");
+  const publicPath = pathname === "/login" || pathname.startsWith("/api/health") || pathname.startsWith("/api/webhooks") || pathname.startsWith("/api/demo/login") || pathname.startsWith("/_next") || pathname.includes(".");
   const demoSession = request.cookies.get(DEMO_SESSION_COOKIE)?.value === "1";
 
   if (demoSession) {
