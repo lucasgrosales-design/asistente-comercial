@@ -5,6 +5,7 @@ import { DEMO_EMAIL } from "./demo-config";
 export { DEMO_EMAIL } from "./demo-config";
 
 const DEMO_COOKIE = "asistente_demo_state";
+const DEMO_SESSION_COOKIE = "asistente_demo_session";
 
 export const demoOpportunities: Opportunity[] = [
   { id:"demo-1", contact_name:"Juan Pérez", phone:"+54 9 343 555-0123", need:"Cobertura para Amarok 2025", product:"Seguro automotor", intent:"Está comparando alternativas", status:"seguimiento", current_summary:"Busca seguro para una Amarok 2025. Ya recibió una propuesta y está comparando coberturas y precio.", next_action:"Recontactar y consultar decisión", next_action_at:"2026-09-18", assigned_user_name:"Lucas", updated_at:"2026-09-17" },
@@ -27,6 +28,17 @@ export type DemoState = { opportunities: Opportunity[]; interactions: Record<str
 
 export function isDemoUser(email?: string | null) {
   return String(email || "").toLowerCase() === DEMO_EMAIL;
+}
+
+export async function isDemoSession() {
+  const store = await cookies();
+  return store.get(DEMO_SESSION_COOKIE)?.value === "1";
+}
+
+export async function startDemoSession() {
+  const store = await cookies();
+  store.set(DEMO_SESSION_COOKIE, "1", { httpOnly:true, sameSite:"lax", secure:process.env.NODE_ENV==="production", path:"/", maxAge:60*60*8 });
+  await saveDemoState(demoSeedState());
 }
 
 export function demoSeedState(): DemoState {
@@ -59,4 +71,5 @@ export async function saveDemoState(state: DemoState) {
 export async function clearDemoState() {
   const store = await cookies();
   store.delete(DEMO_COOKIE);
+  store.delete(DEMO_SESSION_COOKIE);
 }
