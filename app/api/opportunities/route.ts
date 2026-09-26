@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServer } from "../../lib/supabase-server";
 import { resolveCompanyId } from "../../lib/company";
-import { getDemoState, isDemoUser, saveDemoState } from "../../lib/demo";
+import { getDemoState, isDemoSession, isDemoUser, saveDemoState } from "../../lib/demo";
 import type { Opportunity } from "../../lib/types";
 
 export async function GET() {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await db.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  if (isDemoUser(user.email)) {
+  if (await isDemoSession() || isDemoUser(user.email)) {
     const state = await getDemoState();
     const id = `demo-new-${Date.now()}`;
     const opportunity: Opportunity = {
