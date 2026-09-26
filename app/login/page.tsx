@@ -31,7 +31,33 @@ export default function LoginPage() {
 
   async function demoLogin() {
     setMode("login"); setLoading(true); setError(""); setMessage("");
-    const result = await getSupabaseBrowser().auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+    const supabase = getSupabaseBrowser();
+    let result = await supabase.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASSWORD });
+
+    if (result.error) {
+      const created = await supabase.auth.signUp({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+        options: { data: { name: "Usuario Demo" } }
+      });
+      if (created.error) {
+        setError("No se pudo crear el acceso demo.");
+        setLoading(false);
+        return;
+      }
+      if (!created.data.session) {
+        setError("El proyecto requiere confirmar el email del usuario demo. Desactivá la confirmación de email en Supabase para habilitar la prueba.");
+        setLoading(false);
+        return;
+      }
+      await fetch("/api/setup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ company_name: "Empresa Demo", user_name: "Usuario Demo" })
+      });
+      result = { error: null } as typeof result;
+    }
+
     if (result.error) setError("No se pudo iniciar la sesión demo.");
     else window.location.href = "/";
     setLoading(false);
