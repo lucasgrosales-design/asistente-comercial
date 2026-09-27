@@ -13,8 +13,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/demo/login") ||
     pathname.startsWith("/api/demo/reset") ||
-    pathname.startsWith("/_next") ||
-    pathname.includes(".");
+    pathname.startsWith("/_next");
 
   const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
   const demoSession = await verifyDemoCookieValue(demoCookie);
