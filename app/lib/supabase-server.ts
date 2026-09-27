@@ -1,12 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://grjboblvtmsvynubexwv.supabase.co";
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_xjjsvNCb9etBFSa0JsntQg_A12Yddcl";
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`missing_env:${name}`);
+  return value;
+}
 
 export async function getSupabaseServer() {
   const cookieStore = await cookies();
-  return createServerClient(SUPABASE_URL, SUPABASE_KEY, {
+  const url = requiredEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!key) throw new Error("missing_env:NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  return createServerClient(url, key, {
     cookies: {
       getAll() { return cookieStore.getAll(); },
       setAll(cookiesToSet) {
