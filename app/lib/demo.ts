@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import crypto from "node:crypto";
 import { createDemoCookieValue, verifyDemoCookieValue } from "./demo-session";
 import type { Interaction, Opportunity } from "./types";
 import { DEMO_EMAIL } from "./demo-config";
@@ -21,7 +20,7 @@ export function isDemoUser(email?: string | null) { return String(email || "").t
 
 async function getSession() {
   const store = await cookies();
-  const verified = verifyDemoCookieValue(store.get(DEMO_SESSION_COOKIE)?.value);
+  const verified = await verifyDemoCookieValue(store.get(DEMO_SESSION_COOKIE)?.value);
   if (!verified) return null;
   const db = getSupabaseAdmin();
   if (!db) return null;
@@ -65,7 +64,7 @@ export async function startDemoSession() {
   if (!db) throw new Error("supabase_not_configured");
   if (!demoSecret()) throw new Error("demo_session_secret_not_configured");
 
-  const sessionId = crypto.randomUUID();
+  const sessionId = globalThis.crypto.randomUUID();
   const expiresAt = new Date(Date.now() + DEMO_SESSION_TTL_SECONDS * 1000);
   const { error } = await db.from("demo_sessions").insert({
     id: sessionId,
@@ -75,7 +74,7 @@ export async function startDemoSession() {
   if (error) throw new Error("demo_session_create_failed");
 
   const store = await cookies();
-  store.set(DEMO_SESSION_COOKIE, createDemoCookieValue(sessionId, Math.floor(expiresAt.getTime() / 1000)), {
+  store.set(DEMO_SESSION_COOKIE, await createDemoCookieValue(sessionId, Math.floor(expiresAt.getTime() / 1000)), {
     httpOnly:true, sameSite:"lax", secure:process.env.NODE_ENV==="production", path:"/", maxAge:DEMO_SESSION_TTL_SECONDS
   });
 }
@@ -103,7 +102,7 @@ export async function saveDemoState(state: DemoState) {
 
 export async function clearDemoState() {
   const store = await cookies();
-  const session = verifyDemoCookieValue(store.get(DEMO_SESSION_COOKIE)?.value);
+  const session = await verifyDemoCookieValue(store.get(DEMO_SESSION_COOKIE)?.value);
   if (session) {
     const db = getSupabaseAdmin();
     if (db) await db.from("demo_sessions").delete().eq("id", session.sessionId);
