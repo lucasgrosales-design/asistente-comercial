@@ -78,3 +78,34 @@ alter table public.demo_sessions enable row level security;
 revoke all on table public.demo_sessions from anon, authenticated;
 grant all on table public.demo_sessions to service_role;
 create policy "demo sessions server only" on public.demo_sessions for all to anon, authenticated using (false) with check (false);
+
+
+create or replace function public.setup_company(p_company_name text, p_user_name text) returns uuid
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_company uuid;
+begin
+  if v_user is null then raise exception 'unauthorized'; end if;
+  if length(trim(coalesce(p_company_name,''))) < 2 or length(trim(p_company_name)) > 160 then
+    raise exception 'invalid_company_name';
+  end if;
+  if length(trim(coalesce(p_user_name,''))) < 2 or length(trim(p_user_name)) > 120 then
+    raise exception 'invalid_user_name';
+  end if;
+
+  select company_id into v_company from public.users where id=v_user;
+  if v_company is not null then return v_company; end if;
+
+  insert into public.companies(name) values(trim(p_company_name)) returning id into v_company;
+  insert into public.users(id,company_id,name,email)
+  values(v_user,v_company,trim(p_user_name),(select email from auth.users where id=v_user));
+  return v_company;
+end;
+$$;
+
+revoke all on function public.setup_company(text,text) from public;
+grant execute on function public.setup_company(text,text) to authenticated;
