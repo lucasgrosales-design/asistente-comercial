@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { verifyDemoCookieValue } from "./app/lib/demo";
+import { verifyDemoCookieValue } from "./app/lib/demo-session";
 
 const DEMO_SESSION_COOKIE = "asistente_demo_session";
 
