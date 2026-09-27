@@ -2,14 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSupabaseServer } from "../lib/supabase-server";
 import { resolveCompanyId } from "../lib/company";
-import { getDemoState, isDemoSession, isDemoUser } from "../lib/demo";
+import { getDemoState, isDemoSession } from "../lib/demo";
 
 export default async function ManagementPage() {
-  const db = await getSupabaseServer();
-  const { data: { user } } = await db.auth.getUser();
   let opportunities:any[] = [];
-  if (await isDemoSession() || isDemoUser(user?.email)) opportunities = (await getDemoState()).opportunities;
-  else {
+  if (await isDemoSession()) {
+    opportunities = (await getDemoState()).opportunities;
+  } else {
+    const db = await getSupabaseServer();
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) redirect("/login");
     const companyId = await resolveCompanyId();
     if (!companyId) redirect("/configuracion");
     const result = await db.from("opportunities").select("id,status,need,current_summary,next_action,next_action_at,updated_at,contacts(name,phone),users(name)").eq("company_id", companyId).order("updated_at", { ascending: false });
