@@ -8,9 +8,12 @@ export const metadata={title:"Asistente Comercial",description:"Seguimiento come
 
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const demo = await isDemoSession();
-  const db = await getSupabaseServer();
-  const { data:{user} } = await db.auth.getUser();
-  const authenticated = demo || !!user;
+  let authenticated = demo;
+  if (!demo) {
+    const db = await getSupabaseServer();
+    const { data:{user} } = await db.auth.getUser();
+    authenticated = !!user;
+  }
   return <div className="shell">
     {authenticated && <header className="topbar"><div className="topbar-inner">
       <Link href="/" className="brand"><span className="brand-mark">A</span><span>Asistente Comercial</span></Link>
