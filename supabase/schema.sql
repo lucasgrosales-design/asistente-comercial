@@ -68,6 +68,7 @@ grant execute on function public.create_opportunity(text,text,text,text) to auth
 
 create table if not exists public.demo_sessions (
   id uuid primary key default gen_random_uuid(),
+  token_hash text not null unique,
   state jsonb not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null
@@ -76,3 +77,4 @@ create index if not exists idx_demo_sessions_expires_at on public.demo_sessions(
 alter table public.demo_sessions enable row level security;
 revoke all on table public.demo_sessions from anon, authenticated;
 grant all on table public.demo_sessions to service_role;
+create policy "demo sessions server only" on public.demo_sessions for all to anon, authenticated using (false) with check (false);
