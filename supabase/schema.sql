@@ -64,3 +64,15 @@ begin
 end; $$;
 revoke all on function public.create_opportunity(text,text,text,text) from public;
 grant execute on function public.create_opportunity(text,text,text,text) to authenticated;
+
+
+create table if not exists public.demo_sessions (
+  id uuid primary key default gen_random_uuid(),
+  state jsonb not null,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+create index if not exists idx_demo_sessions_expires_at on public.demo_sessions(expires_at);
+alter table public.demo_sessions enable row level security;
+revoke all on table public.demo_sessions from anon, authenticated;
+grant all on table public.demo_sessions to service_role;
