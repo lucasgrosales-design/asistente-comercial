@@ -58,33 +58,19 @@ export function demoSeedState(): DemoState {
 }
 
 function compactState(state: DemoState): DemoState {
-  return {
-    opportunities: state.opportunities.slice(0, MAX_DEMO_OPPORTUNITIES),
-    interactions: Object.fromEntries(
-      Object.entries(state.interactions).map(([id, list]) => [id, list.slice(0, MAX_DEMO_INTERACTIONS)])
-    )
-  };
+  return { opportunities: state.opportunities.slice(0, MAX_DEMO_OPPORTUNITIES), interactions: Object.fromEntries(Object.entries(state.interactions).map(([id, list]) => [id, list.slice(0, MAX_DEMO_INTERACTIONS)])) };
 }
 
 export async function startDemoSession() {
   const db = getSupabaseAdmin();
   if (!db) throw new Error("supabase_not_configured");
-  if (!demoSecret()) throw new Error("demo_session_secret_not_configured");
-
+  if (!process.env.DEMO_SESSION_SECRET) throw new Error("demo_session_secret_not_configured");
   const sessionId = globalThis.crypto.randomUUID();
   const expiresAt = new Date(Date.now() + DEMO_SESSION_TTL_SECONDS * 1000);
-  const { error } = await db.from("demo_sessions").insert({
-    id: sessionId,
-    token_hash: await hashSessionId(sessionId),
-    state: compactState(demoSeedState()),
-    expires_at: expiresAt.toISOString()
-  });
+  const { error } = await db.from("demo_sessions").insert({ id:sessionId, token_hash:await hashSessionId(sessionId), state:compactState(demoSeedState()), expires_at:expiresAt.toISOString() });
   if (error) throw new Error("demo_session_create_failed");
-
   const store = await cookies();
-  store.set(DEMO_SESSION_COOKIE, await createDemoCookieValue(sessionId, Math.floor(expiresAt.getTime() / 1000)), {
-    httpOnly:true, sameSite:"lax", secure:process.env.NODE_ENV==="production", path:"/", maxAge:DEMO_SESSION_TTL_SECONDS
-  });
+  store.set(DEMO_SESSION_COOKIE, await createDemoCookieValue(sessionId, Math.floor(expiresAt.getTime()/1000)), { httpOnly:true, sameSite:"lax", secure:process.env.NODE_ENV==="production", path:"/", maxAge:DEMO_SESSION_TTL_SECONDS });
 }
 
 export async function getDemoState() {
@@ -104,7 +90,7 @@ export async function saveDemoState(state: DemoState) {
   if (!session) throw new Error("demo_session_invalid");
   const db = getSupabaseAdmin();
   if (!db) throw new Error("supabase_not_configured");
-  const { error } = await db.from("demo_sessions").update({ state: compactState(state) }).eq("id", session.sessionId);
+  const { error } = await db.from("demo_sessions").update({ state:compactState(state) }).eq("id", session.sessionId);
   if (error) throw new Error("demo_state_save_failed");
 }
 
