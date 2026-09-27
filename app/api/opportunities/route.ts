@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServer } from "../../lib/supabase-server";
 import { resolveCompanyId } from "../../lib/company";
-import { getDemoState, isDemoSession, isDemoUser, saveDemoState } from "../../lib/demo";
+import { getDemoState, isDemoSession, saveDemoState } from "../../lib/demo";
 import { opportunityInputSchema, requestTooLarge } from "../../lib/validation";
 import type { Opportunity } from "../../lib/types";
 
 export async function GET() {
   try {
+    if (await isDemoSession()) return NextResponse.json({data:(await getDemoState()).opportunities,demo:true});
     const db = await getSupabaseServer();
     const { data:{ user } } = await db.auth.getUser();
-    if (await isDemoSession()) return NextResponse.json({data:(await getDemoState()).opportunities,demo:true});
     if (!user) return NextResponse.json({error:"unauthorized"},{status:401});
-    if (isDemoUser(user.email)) return NextResponse.json({data:(await getDemoState()).opportunities,demo:true});
     const companyId=await resolveCompanyId();
     if(!companyId)return NextResponse.json({error:"company_not_configured"},{status:400});
     const {data,error}=await db.from("opportunities").select("*,contacts(name,phone,email),users(name)").eq("company_id",companyId).order("updated_at",{ascending:false});
@@ -29,15 +28,15 @@ export async function POST(req:NextRequest){
   if(!parsed.success)return NextResponse.json({error:"invalid_input",details:parsed.error.flatten()},{status:400});
   const body=parsed.data;
   try {
-    const db=await getSupabaseServer();
-    const {data:{user}}=await db.auth.getUser();
-    if(await isDemoSession() || isDemoUser(user?.email)){
-      const state=await getDemoState(); const id=`demo-new-${Date.now()}`;
+    if(await isDemoSession()){
+      const state=await getDemoState(); const id=`demo-new-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
       const opportunity:Opportunity={id,contact_name:body.name,phone:body.phone||null,need:body.need||null,product:null,intent:"Consulta inicial",status:"nuevo",current_summary:"Nueva oportunidad creada durante la sesión demo.",next_action:"Contactar",next_action_at:null,assigned_user_name:"Lucas",updated_at:new Date().toISOString()};
       state.opportunities=[opportunity,...state.opportunities].slice(0,12);state.interactions[id]=[];
       await saveDemoState(state);
       return NextResponse.json({opportunity,demo:true},{status:201});
     }
+    const db=await getSupabaseServer();
+    const {data:{user}}=await db.auth.getUser();
     if(!user)return NextResponse.json({error:"unauthorized"},{status:401});
     const {data:opportunityId,error}=await db.rpc("create_opportunity",{p_name:body.name,p_phone:body.phone||null,p_need:body.need||null,p_email:body.email||null});
     if(error)return NextResponse.json({error:error.message},{status:500});
