@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
     pathname.includes(".");
 
   const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
-  const demoSession = verifyDemoCookieValue(demoCookie);
+  const demoSession = await verifyDemoCookieValue(demoCookie);
 
   if (demoSession) {
     if (pathname === "/login") return NextResponse.redirect(new URL("/", request.url));
