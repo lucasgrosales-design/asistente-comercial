@@ -26,18 +26,26 @@ export async function middleware(request: NextRequest) {
 
   if (demoCookie) response.cookies.delete(DEMO_SESSION_COOKIE);
 
-  // Public routes must remain reachable even when Supabase runtime configuration is incomplete.\n  // Protected routes fail closed below.\n  if (publicPath) return response;\n\n  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;\n  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;\n  if (!supabaseUrl || !supabaseKey) return NextResponse.json({ error:"supabase_env_not_configured" }, { status:503 });
+  // Public routes must remain reachable even when Supabase runtime configuration is incomplete.
+  if (publicPath) return response;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error:"supabase_env_not_configured" }, { status:503 });
+  }
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() { return request.cookies.getAll(); },
-      setAll(cookiesToSet) { cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options)); },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      },
     },
   });
 
   const { data:{ user } } = await supabase.auth.getUser();
-  if (!user && !publicPath) return NextResponse.redirect(new URL("/login", request.url));
-  if (user && pathname === "/login") return NextResponse.redirect(new URL("/", request.url));
+  if (!user) return NextResponse.redirect(new URL("/login", request.url));
   return response;
 }
 
