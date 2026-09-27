@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServer } from "../../../../lib/supabase-server";
 import { resolveCompanyId, normalizeStatus } from "../../../../lib/company";
 import { extractCommercialContext, type CommercialExtraction } from "../../../../lib/ai";
-import { getDemoState, isDemoSession, isDemoUser, saveDemoState } from "../../../../lib/demo";
+import { getDemoState, isDemoSession, saveDemoState } from "../../../../lib/demo";
 import { interactionInputSchema, requestTooLarge } from "../../../../lib/validation";
 
 export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>}){
@@ -13,8 +13,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   if(!parsed.success)return NextResponse.json({error:"invalid_input",details:parsed.error.flatten()},{status:400});
   const body=parsed.data;
   try {
-    const db=await getSupabaseServer(); const {data:{user}}=await db.auth.getUser();
-    if(await isDemoSession() || isDemoUser(user?.email)){
+    if(await isDemoSession()){
       const state=await getDemoState(); const opp=state.opportunities.find(o=>o.id===id);
       if(!opp)return NextResponse.json({error:"opportunity_not_found"},{status:404});
       let extracted:CommercialExtraction={summary:body.text.slice(0,220),next_action:body.next_action||"Definir próximo contacto",next_action_at:body.next_action_at||null};
@@ -22,10 +21,11 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
       const status=normalizeStatus(body.outcome||extracted.status);
       opp.current_summary=extracted.summary||body.text.slice(0,220);opp.next_action=body.next_action||extracted.next_action||"Definir próximo contacto";opp.next_action_at=body.next_action_at||extracted.next_action_at||null;opp.updated_at=new Date().toISOString();
       if(extracted.need)opp.need=extracted.need;if(extracted.product)opp.product=extracted.product;if(extracted.intent)opp.intent=extracted.intent;if(status)opp.status=status;
-      const item={id:`demo-i-${Date.now()}`,occurred_at:body.occurred_at||new Date().toISOString(),channel:body.channel||"manual",summary:body.text.slice(0,220),outcome:body.outcome||"Contacto registrado",user_name:"Lucas"};
+      const item={id:`demo-i-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,occurred_at:body.occurred_at||new Date().toISOString(),channel:body.channel||"manual",summary:body.text.slice(0,220),outcome:body.outcome||"Contacto registrado",user_name:"Lucas"};
       state.interactions[id]=[item,...(state.interactions[id]||[])].slice(0,5);await saveDemoState(state);
       return NextResponse.json({interaction:item,extracted,demo:true});
     }
+    const db=await getSupabaseServer(); const {data:{user}}=await db.auth.getUser();
     if(!user)return NextResponse.json({error:"unauthorized"},{status:401});
     const companyId=await resolveCompanyId();if(!companyId)return NextResponse.json({error:"company_not_configured"},{status:400});
     const {data:opp,error:oppError}=await db.from("opportunities").select("id,current_summary").eq("id",id).eq("company_id",companyId).maybeSingle();
