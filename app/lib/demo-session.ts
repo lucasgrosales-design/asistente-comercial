@@ -24,7 +24,8 @@ export function verifyDemoCookieValue(value?: string | null) {
   const expiresAt = Number(expiresRaw);
   if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) return null;
   const payload = `${sessionId}.${expiresAt}`;
-  const expected = signPayload(payload);
+  let expected: string;
+  try { expected = signPayload(payload); } catch { return null; }
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
