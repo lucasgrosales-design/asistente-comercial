@@ -15,52 +15,64 @@ function getPublicConfig() {
 
 export async function GET() {
   const { url, key } = getPublicConfig();
-  const missingPublic: string[] = [];
-  if (!url) missingPublic.push("SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL");
-  if (!key) missingPublic.push("SUPABASE_PUBLISHABLE_KEY/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-  if (missingPublic.length) {
+
+  if (!url || !key) {
+    const missing: string[] = [];
+    if (!url) missing.push("SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL");
+    if (!key) missing.push("SUPABASE_PUBLISHABLE_KEY/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
     return NextResponse.json(
-      { status:"degraded", app:"ok", database:"not_configured", missing:missingPublic },
-      { status:503, headers:{"cache-control":"no-store"} }
+      { status: "degraded", app: "ok", database: "not_configured", missing },
+      { status: 503, headers: { "cache-control": "no-store" } }
     );
   }
 
   try {
     const publicClient = createClient(url, key, {
-      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
     });
+
     const { error: authError } = await publicClient.auth.getSession();
     if (authError && !/session/i.test(authError.message)) {
       return NextResponse.json(
-        {status:"degraded",app:"ok",database:"error"},
-        {status:503,headers:{"cache-control":"no-store"}}
+        { status: "degraded", app: "ok", database: "error" },
+        { status: 503, headers: { "cache-control": "no-store" } }
       );
     }
 
     const admin = getSupabaseAdmin();
     if (!admin) {
       return NextResponse.json(
-        {status:"degraded",app:"ok",database:"public_configured",server:"not_configured",missing:["SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY","DEMO_SESSION_SECRET"]},
-        {status:503,headers:{"cache-control":"no-store"}}
+        {
+          status: "degraded",
+          app: "ok",
+          database: "public_configured",
+          server: "not_configured",
+          missing: ["SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY", "DEMO_SESSION_SECRET"],
+        },
+        { status: 503, headers: { "cache-control": "no-store" } }
       );
     }
 
-    const {error: dbError}=await admin.from("demo_sessions").select("id").limit(1);
-    if(dbError) {
+    const { error: dbError } = await admin.from("demo_sessions").select("id").limit(1);
+    if (dbError) {
       return NextResponse.json(
-        {status:"degraded",app:"ok",database:"error"},
-        {status:503,headers:{"cache-control":"no-store"}}
+        { status: "degraded", app: "ok", database: "error" },
+        { status: 503, headers: { "cache-control": "no-store" } }
       );
     }
 
     return NextResponse.json(
-      {status:"ok",app:"ok",database:"reachable",demo:"configured"},
-      {headers:{"cache-control":"no-store"}}
+      { status: "ok", app: "ok", database: "reachable", demo: "configured" },
+      { headers: { "cache-control": "no-store" } }
     );
   } catch {
     return NextResponse.json(
-      {status:"degraded",app:"ok",database:"error"},
-      {status:503,headers:{"cache-control":"no-store"}}
+      { status: "degraded", app: "ok", database: "error" },
+      { status: 503, headers: { "cache-control": "no-store" } }
     );
   }
 }
