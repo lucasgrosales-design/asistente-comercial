@@ -98,6 +98,7 @@ create table if not exists public.demo_sessions (
   expires_at timestamptz not null
 );
 create index if not exists idx_demo_sessions_expires_at on public.demo_sessions(expires_at);
+-- token_hash is already covered by the UNIQUE constraint; no duplicate secondary index is needed.
 alter table public.demo_sessions enable row level security;
 revoke all on table public.demo_sessions from anon, authenticated;
 grant all on table public.demo_sessions to service_role;
