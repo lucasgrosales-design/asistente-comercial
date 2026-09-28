@@ -55,15 +55,23 @@ revoke all on table public.companies,public.users,public.contacts,public.contact
 grant select,insert,update,delete on public.companies,public.users,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events to authenticated;
 grant all on public.companies,public.users,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events to service_role;
 
-create or replace function public.create_opportunity(p_name text,p_phone text default null,p_need text default null,p_email text default null) returns uuid language plpgsql security invoker set search_path=public as $$
-declare v_company uuid; v_contact uuid; v_opp uuid;
+create or replace function public.create_opportunity(p_name text,p_phone text default null,p_need text default null,p_email text default null) returns uuid language plpgsql security invoker set search_path=public as $
+declare v_company uuid; v_contact uuid; v_opp uuid; v_phone text; v_email text;
 begin
   v_company := private.current_company_id();
   if v_company is null then raise exception 'company_not_configured'; end if;
-  insert into public.contacts(company_id,name,phone,email) values(v_company,trim(p_name),nullif(trim(p_phone),''),nullif(trim(p_email),'')) returning id into v_contact;
+  if nullif(trim(p_name),'') is null then raise exception 'name_required'; end if;
+  v_phone := nullif(trim(p_phone),'');
+  v_email := nullif(lower(trim(p_email)),'');
+  select id into v_contact from public.contacts where company_id=v_company and ((v_phone is not null and phone=v_phone) or (v_email is not null and lower(email)=v_email)) order by updated_at desc limit 1;
+  if v_contact is null then
+    insert into public.contacts(company_id,name,phone,email) values(v_company,trim(p_name),v_phone,v_email) returning id into v_contact;
+  else
+    update public.contacts set name=coalesce(nullif(trim(p_name),''),name), phone=coalesce(v_phone,phone), email=coalesce(v_email,email), updated_at=now() where id=v_contact and company_id=v_company;
+  end if;
   insert into public.opportunities(company_id,contact_id,assigned_user_id,need,status) values(v_company,v_contact,auth.uid(),nullif(trim(p_need),''),'nuevo') returning id into v_opp;
   return v_opp;
-end; $$;
+end; $;
 revoke all on function public.create_opportunity(text,text,text,text) from public;
 grant execute on function public.create_opportunity(text,text,text,text) to authenticated;
 
