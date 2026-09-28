@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../lib/supabase";
 import { extractCommercialContext } from "../../../lib/ai";
 import { resolveCompanyId, normalizeStatus } from "../../../lib/company";
-import { inboundEventSchema, requestTooLarge } from "../../../lib/validation";
+import { constantTimeEqual, inboundEventSchema, requestTooLarge } from "../../../lib/validation";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.N8N_SHARED_SECRET;
   if (!secret) return NextResponse.json({ok:false,error:"webhook_not_configured"},{status:503});
-  if (req.headers.get("x-n8n-secret") !== secret) return NextResponse.json({ok:false,error:"unauthorized"},{status:401});
+  if (!(await constantTimeEqual(req.headers.get("x-n8n-secret") || "", secret))) return NextResponse.json({ok:false,error:"unauthorized"},{status:401});
   if (requestTooLarge(req, 32768)) return NextResponse.json({ok:false,error:"request_too_large"},{status:413});
 
   const parsed = inboundEventSchema.safeParse(await req.json().catch(()=>null));

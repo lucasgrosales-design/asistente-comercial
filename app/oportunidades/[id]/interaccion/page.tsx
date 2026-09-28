@@ -2,7 +2,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 
-const outcomes=[["en_conversacion","En conversación"],["seguimiento","Recontactar"],["venta","Venta"],["perdido","No vendido"],["inactivo","Inactivo"]];
+const outcomes=[["sin_cambios","Sin cambios"],["en_conversacion","En conversación"],["seguimiento","Recontactar"],["venta","Venta"],["perdido","No vendido"],["inactivo","Inactivo"]];
 
 export default function InteractionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

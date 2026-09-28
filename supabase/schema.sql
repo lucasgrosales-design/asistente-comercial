@@ -64,7 +64,9 @@ create policy "company interactions" on public.interactions for all to authentic
 create policy "company inbound events" on public.inbound_events for all to authenticated using (company_id=(select private.current_company_id())) with check (company_id=(select private.current_company_id()));
 
 revoke all on table public.companies,public.users,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events from anon;
-grant select,insert,update,delete on public.companies,public.users,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events to authenticated;
+revoke insert,delete,update on public.users from authenticated;
+grant select,update(name) on public.users to authenticated;
+grant select,insert,update,delete on public.companies,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events to authenticated;
 grant all on public.companies,public.users,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events to service_role;
 
 create or replace function public.create_opportunity(p_name text,p_phone text default null,p_need text default null,p_email text default null) returns uuid language plpgsql security invoker set search_path=public as $
@@ -96,6 +98,7 @@ create table if not exists public.demo_sessions (
   expires_at timestamptz not null
 );
 create index if not exists idx_demo_sessions_expires_at on public.demo_sessions(expires_at);
+-- token_hash is already covered by the UNIQUE constraint; no duplicate secondary index is needed.
 alter table public.demo_sessions enable row level security;
 revoke all on table public.demo_sessions from anon, authenticated;
 grant all on table public.demo_sessions to service_role;

@@ -18,9 +18,9 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
       if(!opp)return NextResponse.json({error:"opportunity_not_found"},{status:404});
       let extracted:CommercialExtraction={summary:body.text.slice(0,220),next_action:body.next_action||"Definir próximo contacto",next_action_at:body.next_action_at||null};
       try{extracted=await extractCommercialContext(body.text,opp.current_summary||"");}catch{}
-      const status=normalizeStatus(body.outcome||extracted.status);
+      const status=body.outcome === "sin_cambios" ? null : normalizeStatus(body.outcome||extracted.status);
       opp.current_summary=extracted.summary||body.text.slice(0,220);opp.next_action=body.next_action||extracted.next_action||"Definir próximo contacto";opp.next_action_at=body.next_action_at||extracted.next_action_at||null;opp.updated_at=new Date().toISOString();
-      if(extracted.need)opp.need=extracted.need;if(extracted.product)opp.product=extracted.product;if(extracted.intent)opp.intent=extracted.intent;if(status)opp.status=status;
+      if(extracted.need)opp.need=extracted.need;if(extracted.product)opp.product=extracted.product;if(extracted.intent)opp.intent=extracted.intent;if(status)opp.status=status;if(status && ["venta","perdido","inactivo"].includes(status)){opp.next_action=null;opp.next_action_at=null;}
       const item={id:`demo-i-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,occurred_at:body.occurred_at||new Date().toISOString(),channel:body.channel||"manual",summary:body.text.slice(0,220),outcome:body.outcome||"Contacto registrado",user_name:"Lucas"};
       state.interactions[id]=[item,...(state.interactions[id]||[])].slice(0,5);await saveDemoState(state);
       return NextResponse.json({interaction:item,extracted,demo:true});
@@ -35,7 +35,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
     const interaction=await db.from("interactions").insert({opportunity_id:id,user_id:user.id,channel:body.channel||"manual",occurred_at:body.occurred_at||new Date().toISOString(),source_text:body.text,summary:extracted.summary||body.text,outcome:body.outcome||"Contacto registrado"}).select().single();
     if(interaction.error)return NextResponse.json({error:interaction.error.message},{status:500});
     const patch:Record<string,unknown>={current_summary:extracted.summary||body.text,next_action:body.next_action||extracted.next_action||"Definir próximo contacto",next_action_at:body.next_action_at||extracted.next_action_at||null,updated_at:new Date().toISOString()};
-    if(extracted.need)patch.need=extracted.need;if(extracted.product)patch.product=extracted.product;if(extracted.intent)patch.intent=extracted.intent;const status=normalizeStatus(body.outcome||extracted.status);if(status)patch.status=status;
+    if(extracted.need)patch.need=extracted.need;if(extracted.product)patch.product=extracted.product;if(extracted.intent)patch.intent=extracted.intent;const status=body.outcome === "sin_cambios" ? null : normalizeStatus(body.outcome||extracted.status);if(status)patch.status=status;if(status && ["venta","perdido","inactivo"].includes(status)){patch.next_action=null;patch.next_action_at=null;}
     const {error:updateError}=await db.from("opportunities").update(patch).eq("id",id).eq("company_id",companyId);if(updateError)return NextResponse.json({error:updateError.message},{status:500});
     return NextResponse.json({interaction:interaction.data,extracted});
   } catch (error) {
