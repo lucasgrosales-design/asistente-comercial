@@ -35,9 +35,7 @@ grant usage on schema private to authenticated;
 grant execute on function private.current_company_id() to authenticated;
 
 create or replace function private.current_company_user_ids() returns setof uuid language sql stable security definer set search_path='' as $
-  select id from public.users where company_id=(select private.current_company_id())
-$;
-revoke all on function private.current_company_user_ids() from public;
+  select id from public.users where company_id=(select private.current_company_id())\n$;\nrevoke all on function private.current_company_user_ids() from public;
 grant execute on function private.current_company_user_ids() to authenticated;
 
 drop policy if exists "company users" on public.companies;
@@ -84,9 +82,7 @@ begin
     update public.contacts set name=coalesce(nullif(trim(p_name),''),name), phone=coalesce(v_phone,phone), email=coalesce(v_email,email), updated_at=now() where id=v_contact and company_id=v_company;
   end if;
   insert into public.opportunities(company_id,contact_id,assigned_user_id,need,status) values(v_company,v_contact,auth.uid(),nullif(trim(p_need),''),'nuevo') returning id into v_opp;
-  return v_opp;
-end; $;
-revoke all on function public.create_opportunity(text,text,text,text) from public;
+  return v_opp;\nend; $;\nrevoke all on function public.create_opportunity(text,text,text,text) from public;
 grant execute on function public.create_opportunity(text,text,text,text) to authenticated;
 
 
