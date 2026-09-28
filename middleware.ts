@@ -1,18 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyDemoCookieValue } from "./app/lib/demo-session";
+import { PUBLIC_SUPABASE_KEY, PUBLIC_SUPABASE_URL } from "./app/lib/supabase-config";
 
 const DEMO_SESSION_COOKIE = "asistente_demo_session";
-
-function getSupabaseConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_ANON_KEY;
-  return { url, key };
-}
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -34,15 +25,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (demoCookie) response.cookies.delete(DEMO_SESSION_COOKIE);
-
   if (publicPath) return response;
 
-  const { url: supabaseUrl, key: supabaseKey } = getSupabaseConfig();
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error:"supabase_env_not_configured" }, { status:503 });
-  }
-
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  const supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_KEY, {
     cookies: {
       getAll() { return request.cookies.getAll(); },
       setAll(cookiesToSet) {
@@ -51,9 +36,9 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const { data:{ user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/login", request.url));
   return response;
 }
 
-export const config = { matcher:["/((?!_next/static|_next/image|favicon.ico).*)"] };
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };
