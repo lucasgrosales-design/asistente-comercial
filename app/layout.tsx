@@ -10,9 +10,13 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
   const demo = await isDemoSession();
   let authenticated = demo;
   if (!demo) {
-    const db = await getSupabaseServer();
-    const { data:{user} } = await db.auth.getUser();
-    authenticated = !!user;
+    try {
+      const db = await getSupabaseServer();
+      const { data:{user} } = await db.auth.getUser();
+      authenticated = !!user;
+    } catch {
+      authenticated = false;
+    }
   }
   return <div className="shell">
     {authenticated && <header className="topbar"><div className="topbar-inner">
