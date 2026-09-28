@@ -9,9 +9,11 @@ export async function GET() {
   if (!publicUrl) missingPublic.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!publicKey) missingPublic.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   if (missingPublic.length) return NextResponse.json({ status:"degraded", app:"ok", database:"not_configured", missing:missingPublic }, { status:503, headers:{"cache-control":"no-store"} });
+  const url = publicUrl as string;
+  const key = publicKey as string;
 
   try {
-    const publicClient = createClient(publicUrl, publicKey, { auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false} });
+    const publicClient = createClient(url, key, { auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false} });
     const { error: authError } = await publicClient.auth.getSession();
     if (authError && !/session/i.test(authError.message)) return NextResponse.json({status:"degraded",app:"ok",database:"error"},{status:503,headers:{"cache-control":"no-store"}});
     const admin = getSupabaseAdmin();
