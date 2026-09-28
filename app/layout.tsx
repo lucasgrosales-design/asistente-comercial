@@ -21,7 +21,7 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
   return <div className="shell">
     {authenticated && <header className="topbar"><div className="topbar-inner">
       <Link href="/" className="brand"><span className="brand-mark">A</span><span>Asistente Comercial</span></Link>
-      <nav className="nav"><Link href="/">Inicio</Link><Link href="/gestion">Gestión</Link><Link href="/oportunidades/nueva">Nueva oportunidad</Link><LogoutButton/></nav>
+      <nav className="nav"><Link href="/">Inicio</Link><Link href="/gestion">Seguimiento</Link><Link href="/oportunidades/nueva">Nueva consulta</Link><LogoutButton/></nav>
     </div></header>}
     {children}
     {authenticated && <nav className="mobile-nav"><Link href="/">Inicio</Link><Link href="/gestion">Gestión</Link><Link href="/oportunidades/nueva"><span className="plus">+</span><br/>Nueva</Link><LogoutButton/></nav>}
