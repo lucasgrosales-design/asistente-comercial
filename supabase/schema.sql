@@ -34,9 +34,9 @@ revoke all on function private.current_company_id() from public;
 grant usage on schema private to authenticated;
 grant execute on function private.current_company_id() to authenticated;
 
-create or replace function private.current_company_user_ids() returns setof uuid language sql stable security definer set search_path='' as $
+create or replace function private.current_company_user_ids() returns setof uuid language sql stable security definer set search_path='' as $$
   select id from public.users where company_id=(select private.current_company_id())
-$;
+$$;
 revoke all on function private.current_company_user_ids() from public;
 grant execute on function private.current_company_user_ids() to authenticated;
 
@@ -69,7 +69,7 @@ grant select,update(name) on public.users to authenticated;
 grant select,insert,update,delete on public.companies,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events to authenticated;
 grant all on public.companies,public.users,public.contacts,public.contact_channels,public.opportunities,public.conversations,public.interactions,public.inbound_events to service_role;
 
-create or replace function public.create_opportunity(p_name text,p_phone text default null,p_need text default null,p_email text default null) returns uuid language plpgsql security invoker set search_path=public as $
+create or replace function public.create_opportunity(p_name text,p_phone text default null,p_need text default null,p_email text default null) returns uuid language plpgsql security invoker set search_path=public as $$
 declare v_company uuid; v_contact uuid; v_opp uuid; v_phone text; v_email text;
 begin
   v_company := private.current_company_id();
@@ -85,7 +85,7 @@ begin
   end if;
   insert into public.opportunities(company_id,contact_id,assigned_user_id,need,status) values(v_company,v_contact,auth.uid(),nullif(trim(p_need),''),'nuevo') returning id into v_opp;
   return v_opp;
-end; $;
+end; $$;
 revoke all on function public.create_opportunity(text,text,text,text) from public;
 grant execute on function public.create_opportunity(text,text,text,text) to authenticated;
 
