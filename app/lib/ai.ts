@@ -12,7 +12,7 @@ const extractionSchema=z.object({
   intent:z.string().trim().max(160).optional().nullable(),
   summary:z.string().trim().max(500).default("Sin resumen todavía."),
   next_action:z.string().trim().max(240).optional().nullable(),
-  next_action_at:z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/).optional().nullable(),
+  next_action_at:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   status:z.enum(["nuevo","en_conversacion","seguimiento","venta","perdido","inactivo"]).optional().nullable()
 }).strict();
 
