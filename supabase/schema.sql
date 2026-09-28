@@ -34,6 +34,12 @@ revoke all on function private.current_company_id() from public;
 grant usage on schema private to authenticated;
 grant execute on function private.current_company_id() to authenticated;
 
+create or replace function private.current_company_user_ids() returns setof uuid language sql stable security definer set search_path='' as $
+  select id from public.users where company_id=(select private.current_company_id())
+$;
+revoke all on function private.current_company_user_ids() from public;
+grant execute on function private.current_company_user_ids() to authenticated;
+
 drop policy if exists "company users" on public.companies;
 drop policy if exists "authenticated can create company" on public.companies;
 drop policy if exists "users can update own company" on public.companies;
