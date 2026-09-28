@@ -37,6 +37,15 @@ export const inboundEventSchema = z.object({
   occurred_at: isoDateTime.optional()
 }).strict();
 
+export async function constantTimeEqual(a: string, b: string) {
+  const encoder = new TextEncoder();
+  const [da, db] = await Promise.all([crypto.subtle.digest("SHA-256", encoder.encode(a)), crypto.subtle.digest("SHA-256", encoder.encode(b))]);
+  const aa = new Uint8Array(da); const bb = new Uint8Array(db);
+  let diff = aa.length ^ bb.length;
+  for (let i = 0; i < aa.length; i++) diff |= aa[i] ^ bb[i % bb.length];
+  return diff === 0;
+}
+
 export function requestTooLarge(req: Request, maxBytes = 32768) {
   const length = req.headers.get("content-length");
   return length ? Number(length) > maxBytes : false;
