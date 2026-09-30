@@ -29,14 +29,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     const companyId = await resolveCompanyId();
     if (!companyId) return NextResponse.json({ error: "company_not_configured" }, { status: 400 });
-    const current = await db.from("opportunities").select("id,status,next_action").eq("id", id).eq("company_id", companyId).maybeSingle();
+    const current = await db.from("opportunities").select("id,status,next_action,next_action_at").eq("id", id).eq("company_id", companyId).maybeSingle();
     if (current.error) return NextResponse.json({ error: "query_failed" }, { status: 500 });
     if (!current.data) return NextResponse.json({ error: "opportunity_not_found" }, { status: 404 });
     const result = computeQuickUpdate(current.data, parsed.data);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 });
     const update = await db.from("opportunities").update(result.patch).eq("id", id).eq("company_id", companyId);
     if (update.error) return NextResponse.json({ error: "update_failed" }, { status: 500 });
-    await db.from("interactions").insert({ opportunity_id: id, user_id: user.id, channel: "manual", occurred_at: new Date().toISOString(), source_text: result.note, summary: result.note, outcome: result.outcome });
+    const interaction = await db.from("interactions").insert({ opportunity_id: id, user_id: user.id, channel: "manual", occurred_at: new Date().toISOString(), source_text: result.note, summary: result.note, outcome: result.outcome });
+    if (interaction.error) {
+      // Evita dejar el seguimiento actualizado sin su registro histórico.
+      await db.from("opportunities").update({ status: current.data.status, next_action: current.data.next_action, next_action_at: current.data.next_action_at }).eq("id", id).eq("company_id", companyId);
+      return NextResponse.json({ error: "history_write_failed" }, { status: 500 });
+    }
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("opportunity PATCH failed", error);
