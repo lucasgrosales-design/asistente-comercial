@@ -3,9 +3,12 @@ import { redirect } from "next/navigation";
 import { getSupabaseServer } from "../lib/supabase-server";
 import { resolveCompanyId } from "../lib/company";
 import { getDemoState, isDemoSession } from "../lib/demo";
+import { formatDay, isClosed, sortByUrgency, statusLabel, todayAR } from "../lib/followup";
+
+export const dynamic = "force-dynamic";
 
 export default async function ManagementPage() {
-  let opportunities:any[] = [];
+  let opportunities: any[] = [];
   if (await isDemoSession()) {
     opportunities = (await getDemoState()).opportunities;
   } else {
@@ -18,9 +21,32 @@ export default async function ManagementPage() {
     if (result.error) throw new Error(result.error.message);
     opportunities = result.data || [];
   }
-  const active = opportunities.filter(o => !["venta", "perdido", "inactivo"].includes(o.status));
-  const today = new Date().toISOString().slice(0, 10);
-  const overdue = active.filter(o => o.next_action_at && o.next_action_at < today);
-  const noActivity = active.filter(o => !o.updated_at || new Date(o.updated_at).getTime() < Date.now() - 7 * 86400000);
-  return <main className="container"><div className="row between" style={{ marginBottom: 14 }}><div><h1 style={{ margin: 0 }}>Seguimiento</h1><p className="muted">Todo lo que requiere atención, sin cargar un CRM.</p></div><Link className="button secondary" href="/">← Vendedor</Link></div><section className="grid stats"><div className="card stat"><span className="muted">Activas</span><strong>{active.length}</strong></div><div className="card stat"><span className="muted">Seguimientos vencidos</span><strong>{overdue.length}</strong></div><div className="card stat"><span className="muted">Sin actividad +7 días</span><strong>{noActivity.length}</strong></div><div className="card stat"><span className="muted">Ventas</span><strong>{opportunities.filter(o => o.status === "venta").length}</strong></div></section><section className="card" style={{ marginTop: 14 }}><h2 className="section-title">Personas que requieren atención</h2>{active.length ? <div className="list">{active.map(o => { const contact = Array.isArray(o.contacts) ? o.contacts[0] : o.contacts; const user = Array.isArray(o.users) ? o.users[0] : o.users; return <Link className="item" href={`/oportunidades/${o.id}`} key={o.id}><div className="row between"><div><strong>{o.contact_name || contact?.name || "Sin nombre"}</strong><div className="muted">{o.need || "Sin necesidad registrada"} · {o.assigned_user_name || user?.name || "Sin asignar"}</div></div><span className={`badge ${o.next_action_at && o.next_action_at < today ? "warn" : ""}`}>{o.next_action_at || "Sin próxima fecha"}</span></div><p className="muted" style={{ marginBottom: 0 }}>{o.current_summary || "Sin resumen todavía."}</p></Link>})}</div> : <p className="muted">No hay seguimientos todavía. Creá el primero desde + Nueva consulta.</p>}</section></main>;
+  const today = todayAR();
+  const active = opportunities.filter(o => !isClosed(o.status));
+  const ordered = sortByUrgency(active, today);
+  const overdue = ordered.filter(x => x.attention?.reason === "vencida").length;
+  const idle = ordered.filter(x => x.attention?.reason === "sin_novedades").length;
+  const sales = opportunities.filter(o => o.status === "venta").length;
+
+  return <main className="container">
+    <div className="row between" style={{ marginBottom: 14 }}><div><h1 style={{ margin: 0 }}>Seguimiento</h1><p className="muted">Todo lo que requiere atención, sin cargar un CRM.</p></div><Link className="button secondary" href="/">← Inicio</Link></div>
+    <section className="grid stats">
+      <div className="card stat"><span className="muted">Activas</span><strong>{active.length}</strong></div>
+      <div className="card stat"><span className="muted">Seguimientos vencidos</span><strong>{overdue}</strong></div>
+      <div className="card stat"><span className="muted">Sin novedades hace 7+ días</span><strong>{idle}</strong></div>
+      <div className="card stat"><span className="muted">Vendidas</span><strong>{sales}</strong></div>
+    </section>
+    <section className="card" style={{ marginTop: 14 }}>
+      <h2 className="section-title">Personas que requieren atención</h2>
+      {ordered.length ? <div className="list">{ordered.map(({ item: o, attention }) => {
+        const contact = Array.isArray(o.contacts) ? o.contacts[0] : o.contacts;
+        const user = Array.isArray(o.users) ? o.users[0] : o.users;
+        return <Link className="item" href={`/oportunidades/${o.id}`} key={o.id}>
+          <div className="row between"><div><strong>{o.contact_name || contact?.name || "Sin nombre"}</strong><div className="muted">{o.need || "Sin necesidad registrada"} · {o.assigned_user_name || user?.name || "Sin asignar"}</div></div>
+            <span className={`badge ${attention?.reason === "vencida" ? "danger" : attention?.reason === "hoy" ? "warn" : ""}`}>{attention?.label || (o.next_action_at ? formatDay(o.next_action_at) : statusLabel(o.status))}</span></div>
+          <p className="muted" style={{ marginBottom: 0 }}>{o.current_summary || "Sin resumen todavía."}</p>
+        </Link>;
+      })}</div> : <p className="muted">No hay seguimientos todavía. Creá el primero desde + Nueva consulta.</p>}
+    </section>
+  </main>;
 }

@@ -15,16 +15,21 @@ export default function LoginPage() {
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
     setLoading(true); setError(""); setMessage("");
-    const supabase = getSupabaseBrowser();
-    if (mode === "login") {
-      const result = await supabase.auth.signInWithPassword({ email, password });
-      if (result.error) setError("Email o contraseña incorrectos.");
-      else window.location.href = "/";
-    } else {
-      const result = await supabase.auth.signUp({ email, password });
-      if (result.error) setError(result.error.message);
-      else if (result.data.session) window.location.href = "/configuracion";
-      else setMessage("Cuenta creada. Revisá tu email para confirmar la cuenta y luego ingresá.");
+    try {
+      const supabase = getSupabaseBrowser();
+      if (mode === "login") {
+        const result = await supabase.auth.signInWithPassword({ email, password });
+        if (result.error) setError("Email o contraseña incorrectos.");
+        else window.location.href = "/";
+      } else {
+        if (password.length < 8) { setError("La contraseña debe tener al menos 8 caracteres."); setLoading(false); return; }
+        const result = await supabase.auth.signUp({ email, password });
+        if (result.error) setError(/registered|exists/i.test(result.error.message) ? "Ese email ya tiene una cuenta. Probá ingresar." : "No pudimos crear la cuenta. Revisá los datos e intentá de nuevo.");
+        else if (result.data.session) window.location.href = "/configuracion";
+        else setMessage("Cuenta creada. Revisá tu email para confirmar la cuenta y luego ingresá.");
+      }
+    } catch {
+      setError("El servicio no está disponible en este momento. Probá de nuevo en unos minutos.");
     }
     setLoading(false);
   }

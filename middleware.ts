@@ -10,6 +10,8 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const publicPath =
     pathname === "/login" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/icon.svg" ||
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/demo/login") ||
@@ -20,7 +22,6 @@ export async function middleware(request: NextRequest) {
   const demoSession = await verifyDemoCookieValue(demoCookie);
 
   if (demoSession) {
-    if (pathname === "/login") return NextResponse.redirect(new URL("/", request.url));
     return response;
   }
 

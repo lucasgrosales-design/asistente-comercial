@@ -65,6 +65,7 @@ export async function startDemoSession() {
   const db = getSupabaseAdmin();
   if (!db) throw new Error("supabase_not_configured");
   if (!process.env.DEMO_SESSION_SECRET) throw new Error("demo_session_secret_not_configured");
+  await db.from("demo_sessions").delete().lt("expires_at", new Date().toISOString());
   const sessionId = globalThis.crypto.randomUUID();
   const expiresAt = new Date(Date.now() + DEMO_SESSION_TTL_SECONDS * 1000);
   const { error } = await db.from("demo_sessions").insert({ id:sessionId, token_hash:await hashSessionId(sessionId), state:compactState(demoSeedState()), expires_at:expiresAt.toISOString() });
