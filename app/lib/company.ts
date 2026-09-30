@@ -3,6 +3,15 @@ import { getSupabaseAdmin } from "./supabase";
 
 export async function resolveCompanyId(value?: string | null, options?: { allowUnauthenticated?: boolean }) {
   const explicit = value?.trim();
+
+  if (options?.allowUnauthenticated) {
+    if (!explicit) return null;
+    const admin = getSupabaseAdmin();
+    if (!admin) return null;
+    const { data } = await admin.from("companies").select("id").eq("id", explicit).maybeSingle();
+    return data?.id || null;
+  }
+
   const supabase = await getSupabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -11,13 +20,6 @@ export async function resolveCompanyId(value?: string | null, options?: { allowU
     if (error || !data?.company_id) return null;
     if (explicit && data.company_id !== explicit) return null;
     return data.company_id;
-  }
-
-  if (explicit && options?.allowUnauthenticated) {
-    const admin = getSupabaseAdmin();
-    if (!admin) return null;
-    const { data } = await admin.from("companies").select("id").eq("id", explicit).maybeSingle();
-    return data?.id || null;
   }
 
   return null;
