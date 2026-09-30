@@ -17,9 +17,12 @@
 - [x] Vista de vendedor conectada a datos persistidos
 - [x] Vista operativa de gestión
 - [x] Base de autenticación Supabase (login/signup + protección de rutas)
-- [x] Configuración inicial de empresa/usuario
-- [ ] Supabase conectado en entorno real
+- [x] Base Supabase real creada, con RLS y funciones (verificado 2026-09-28)
+- [ ] Variables de entorno de producción completas en Vercel (bloqueo actual: supabase_env_not_configured)
 - [ ] Verificación de build/typecheck en entorno desplegado
 - [ ] WhatsApp conectado
 - [ ] Pruebas end-to-end con Supabase real
 - [ ] Piloto comercial
+
+## Auditoría 2026-09-28
+Ver docs/auditoria-2026-09-28.md (hallazgos, correcciones aplicadas y pendientes).
