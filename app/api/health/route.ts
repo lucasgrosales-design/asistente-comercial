@@ -19,25 +19,25 @@ export async function GET() {
   const missing = required.filter((name) => !present[name]);
   const info = {
     version: (process.env.VERCEL_GIT_COMMIT_SHA || "local").slice(0, 7),
-    environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
-    variables: present,
-    missing
+    environment: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown"
   };
+  // No exponer presencia/ausencia de secretos en producción.
+  const diagnostics = process.env.VERCEL_ENV === "production" ? undefined : { variables: present, missing };
 
   const admin = getSupabaseAdmin();
-  if (!admin) return NextResponse.json({ status: "degraded", app: "ok", database: "server_not_configured", ...info }, { status: 503, headers });
+  if (!admin) return NextResponse.json({ status: "degraded", app: "ok", database: "server_not_configured", ...info, ...(diagnostics ? { diagnostics } : {}) }, { status: 503, headers });
 
   try {
     const { error } = await admin.from("demo_sessions").select("id").limit(1);
     if (error) {
       const hint = /jwt|api key|apikey|invalid/i.test(error.message) ? "invalid_service_key" : "query_failed";
-      return NextResponse.json({ status: "degraded", app: "ok", database: "error", database_hint: hint, ...info }, { status: 503, headers });
+      return NextResponse.json({ status: "degraded", app: "ok", database: "error", database_hint: hint, ...info, ...(diagnostics ? { diagnostics } : {}) }, { status: 503, headers });
     }
     return NextResponse.json(
-      { status: missing.length ? "degraded" : "ok", app: "ok", database: "reachable", public_config: { url: PUBLIC_SUPABASE_URL, key_configured: Boolean(PUBLIC_SUPABASE_KEY) }, ...info },
+      { status: missing.length ? "degraded" : "ok", app: "ok", database: "reachable", public_config: { url: PUBLIC_SUPABASE_URL, key_configured: Boolean(PUBLIC_SUPABASE_KEY) }, ...info, ...(diagnostics ? { diagnostics } : {}) },
       { status: missing.length ? 503 : 200, headers }
     );
   } catch {
-    return NextResponse.json({ status: "degraded", app: "ok", database: "error", database_hint: "unreachable", ...info }, { status: 503, headers });
+    return NextResponse.json({ status: "degraded", app: "ok", database: "error", database_hint: "unreachable", ...info, ...(diagnostics ? { diagnostics } : {}) }, { status: 503, headers });
   }
 }
