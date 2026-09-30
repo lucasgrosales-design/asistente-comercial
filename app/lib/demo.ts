@@ -17,7 +17,7 @@ async function hashSessionId(sessionId: string) {
   const bytes = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(sessionId));
   let binary = "";
   for (const byte of new Uint8Array(bytes)) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/+/g, "-").replace(///g, "_").replace(/=+$/g, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function dateOffset(days: number) { const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
